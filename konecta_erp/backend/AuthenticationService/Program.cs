@@ -7,6 +7,7 @@ using System.Text;
 using AuthenticationService.Data;
 using AuthenticationService.Models;
 using AuthenticationService.Services;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 

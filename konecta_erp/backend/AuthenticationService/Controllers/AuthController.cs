@@ -4,6 +4,10 @@ using AuthenticationService.Models;
 using AuthenticationService.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using AuthenticationService.Events;    
+using MassTransit;                    
+
+
 
 namespace AuthenticationService.Controllers
 {
@@ -14,14 +18,18 @@ namespace AuthenticationService.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IJwtService _jwtService;
+         private readonly IPublishEndpoint _publishEndpoint;
 
         public AuthController(UserManager<ApplicationUser> userManager,
                               SignInManager<ApplicationUser> signInManager,
-                              IJwtService jwtService)
+                              IJwtService jwtService,
+            IPublishEndpoint publishEndpoint)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _jwtService = jwtService;
+                _publishEndpoint = publishEndpoint ?? throw new ArgumentNullException(nameof(publishEndpoint));
+
         }
 
         [HttpPost("register")]
@@ -42,6 +50,16 @@ namespace AuthenticationService.Controllers
 
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
+                 try
+            {
+                var evt = new UserCreatedEvent(user.Id, user.Email ?? string.Empty, user.FullName ?? string.Empty, "Employee");
+                await _publishEndpoint.Publish(evt);
+            }
+            catch (Exception ex)
+            {
+                    Console.WriteLine($"Error publishing event: {ex.Message}");
+
+            }
 
             return Ok(new { message = "User registered successfully!" });
         }
